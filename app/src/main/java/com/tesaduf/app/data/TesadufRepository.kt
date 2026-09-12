@@ -1,58 +1,95 @@
 package com.tesaduf.app.data
 
+import com.tesaduf.app.BuildConfig
 import com.tesaduf.app.model.DestinyResponse
 import com.tesaduf.app.model.MatchResponse
+import com.tesaduf.app.model.Message
 import com.tesaduf.app.model.MessagesResponse
 import com.tesaduf.app.model.ProfileResponse
 import com.tesaduf.app.model.SendMessageResponse
-import io.github.jan.supabase.functions.functions
-import io.github.jan.supabase.functions.invoke
-import io.ktor.client.call.body
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.android.Android
+import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.header
+import io.ktor.client.request.parameter
+import io.ktor.client.request.request
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpMethod
+import io.ktor.http.contentType
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 class TesadufRepository {
-    private val sb get() = Supabase.client
+    private val http = HttpClient(Android)
+    private val json = Json { ignoreUnknownKeys = true }
 
-    suspend fun bootstrap(): ProfileResponse =
-        sb.functions.invoke("bootstrap").body()
-
-    suspend fun match(): MatchResponse =
-        sb.functions.invoke(
-            function = "matchmaker",
-            body = buildJsonObject { put("mode", "text") }
-        ).body()
-
-    suspend fun status(id: String): MatchResponse =
-        sb.functions.invoke("match-status") {
-            parameter("match_id", id)
-        }.body()
-
-    suspend fun getMessages(id: String): List<com.tesaduf.app.model.Message> =
-        sb.functions.invoke("messages") {
-            parameter("match_id", id)
-        }.body<MessagesResponse>().messages
-
-    suspend fun sendMessage(id: String, text: String): SendMessageResponse =
-        sb.functions.invoke(
-            function = "send-message",
-            body = buildJsonObject {
-                put("match_id", id)
-                put("body", text)
+    private suspend inline fun <reified T> call(
+        function: String,
+        method: HttpMethod = HttpMethod.Post,
+        body: JsonObject? = null,
+        params: Map<String, String> = emptyMap()
+    ): T {
+        val session = Supabase.client.auth.currentSessionOrNull()
+            ?: error("Oturum bulunamadı. Lütfen tekrar deneyin.")
+        val response = http.request("${BuildConfig.SUPABASE_URL}/functions/v1/$function") {
+            this.method = method
+            header("apikey", BuildConfig.SUPABASE_KEY)
+            bearerAuth(session.accessToken)
+            params.forEach { (key, value) -> parameter(key, value) }
+            if (body != null) {
+                contentType(ContentType.Application.Json)
+                setBody(body.toString())
             }
-        ).body()
+        }
+        val text = response.bodyAsText()
+        if (!response.status.isSuccess()) {
+            error("Sunucu hatası ${response.status.value}: $text")
+        }
+        return json.decodeFromString(text)
+    }
 
-    suspend fun destiny(id: String, keep: Boolean): DestinyResponse =
-        sb.functions.invoke(
-            function = "destiny-decision",
-            body = buildJsonObject {
-                put("match_id", id)
-                put("keep", keep)
-            }
-        ).body()
+    suspend fun bootstrap(): ProfileResponse = call("bootstrap")
+
+    suspend fun match(): MatchResponse = call(
+        function = "matchmaker",
+        body = buildJsonObject { put("mode", "text") }
+    )
+
+    suspend fun status(id: String): MatchResponse = call(
+        function = "match-status",
+        method = HttpMethod.Get,
+        params = mapOf("match_id" to id)
+    )
+
+    suspend fun getMessages(id: String): List<Message> = call<MessagesResponse>(
+        function = "messages",
+        method = HttpMethod.Get,
+        params = mapOf("match_id" to id)
+    ).messages
+
+    suspend fun sendMessage(id: String, text: String): SendMessageResponse = call(
+        function = "send-message",
+        body = buildJsonObject {
+            put("match_id", id)
+            put("body", text)
+        }
+    )
+
+    suspend fun destiny(id: String, keep: Boolean): DestinyResponse = call(
+        function = "destiny-decision",
+        body = buildJsonObject {
+            put("match_id", id)
+            put("keep", keep)
+        }
+    )
 
     suspend fun end(id: String) {
-        sb.functions.invoke(
+        call<JsonObject>(
             function = "end-match",
             body = buildJsonObject { put("match_id", id) }
         )
