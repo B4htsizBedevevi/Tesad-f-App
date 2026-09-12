@@ -5,29 +5,33 @@ plugins {
 }
 
 android {
-    namespace="com.tesaduf.app"
-    compileSdk=36
+    namespace = "com.tesaduf.app"
+    compileSdk = 37
 
     defaultConfig {
-        applicationId="com.tesaduf.app"
-        minSdk=26
-        targetSdk=36
-        versionCode=1
-        versionName="0.1.0"
+        applicationId = "com.tesaduf.app"
+        minSdk = 26
+        targetSdk = 37
+        versionCode = 1
+        versionName = "0.1.0"
 
-        buildConfigField("String","SUPABASE_URL","\"https://wihagxhijxccxnaktnel.supabase.co\"")
-        buildConfigField("String","SUPABASE_KEY","\"sb_publishable_3ivcpoyZlbB2kTBvLQpPBQ_9LgMw7u5\"")
+        buildConfigField("String", "SUPABASE_URL", "\"https://wihagxhijxccxnaktnel.supabase.co\"")
+        buildConfigField("String", "SUPABASE_KEY", "\"sb_publishable_3ivcpoyZlbB2kTBvLQpPBQ_9LgMw7u5\"")
     }
 
-    buildFeatures { compose=true; buildConfig=true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+
     compileOptions {
-        sourceCompatibility=JavaVersion.VERSION_17
-        targetCompatibility=JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 }
 
 dependencies {
-    val composeBom=platform("androidx.compose:compose-bom:2026.08.00")
+    val composeBom = platform("androidx.compose:compose-bom:2026.08.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
