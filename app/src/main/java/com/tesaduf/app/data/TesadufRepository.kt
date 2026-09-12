@@ -53,6 +53,24 @@ class TesadufRepository {
         return json.decodeFromString(text)
     }
 
+    private suspend fun callWithoutResponse(
+        function: String,
+        body: JsonObject
+    ) {
+        val session = Supabase.client.auth.currentSessionOrNull()
+            ?: error("Oturum bulunamadı. Lütfen tekrar deneyin.")
+        val response = http.request("${BuildConfig.SUPABASE_URL}/functions/v1/$function") {
+            method = HttpMethod.Post
+            header("apikey", BuildConfig.SUPABASE_KEY)
+            bearerAuth(session.accessToken)
+            contentType(ContentType.Application.Json)
+            setBody(body.toString())
+        }
+        if (!response.status.isSuccess()) {
+            error("Sunucu hatası ${response.status.value}: ${response.bodyAsText()}")
+        }
+    }
+
     suspend fun bootstrap(): ProfileResponse = call("bootstrap")
 
     suspend fun match(): MatchResponse = call(
@@ -89,7 +107,7 @@ class TesadufRepository {
     )
 
     suspend fun end(id: String) {
-        call<JsonObject>(
+        callWithoutResponse(
             function = "end-match",
             body = buildJsonObject { put("match_id", id) }
         )
