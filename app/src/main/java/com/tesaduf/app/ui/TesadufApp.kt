@@ -125,13 +125,6 @@ fun Chat(s: TesadufState, vm: TesadufViewModel) {
         }
     }
 
-    LaunchedEffect(s.matchId) {
-        while (s.matchId != null && !s.ended) {
-            delay(3500)
-            vm.load(s.matchId ?: break)
-        }
-    }
-
     if (s.decisionVisible) {
         AlertDialog(
             onDismissRequest = {},
