@@ -2,6 +2,7 @@ package com.tesaduf.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -138,7 +139,7 @@ fun Chats(s:TesadufState,vm:TesadufViewModel){
         }else{
             LazyColumn(Modifier.fillMaxSize().padding(p).padding(14.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
                 items(s.chats,key={it.id}){chat->
-                    Card(onClick={if(chat.status in listOf("active","destiny"))vm.openChat(chat) else {}}){
+                    Card(modifier=if(chat.status in listOf("active","destiny"))Modifier.fillMaxWidth().clickable{vm.openChat(chat)} else Modifier.fillMaxWidth()){
                         Row(Modifier.fillMaxWidth().padding(16.dp),verticalAlignment=Alignment.CenterVertically){
                             Column(Modifier.weight(1f)){
                                 Text(chat.partner.anonymous_id?:"#?????",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
