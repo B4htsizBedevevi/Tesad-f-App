@@ -28,6 +28,32 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    // The master TESADÜF logo is kept as a single source asset and materialized
+    // into the Android resources during every build. This prevents the launcher
+    // icon from silently falling back to an older vector logo.
+    sourceSets["main"].res.srcDir(layout.buildDirectory.dir("generated/res/tesadufLogo"))
+}
+
+val materializeTesadufLogo by tasks.registering {
+    val encoded = layout.projectDirectory.file("src/main/tesaduf_logo.webp.b64")
+    val output = layout.buildDirectory.file("generated/res/tesadufLogo/drawable-nodpi/tesaduf_logo.webp")
+
+    inputs.file(encoded)
+    outputs.file(output)
+
+    doLast {
+        val data = encoded.asFile.readText().trim()
+        val bytes = java.util.Base64.getDecoder().decode(data)
+        output.get().asFile.apply {
+            parentFile.mkdirs()
+            writeBytes(bytes)
+        }
+    }
+}
+
+tasks.named("preBuild") {
+    dependsOn(materializeTesadufLogo)
 }
 
 dependencies {
