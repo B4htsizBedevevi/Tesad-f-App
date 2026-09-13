@@ -14,7 +14,13 @@ class SupabaseApi(context: Context) {
 
     data class Result(val ok: Boolean, val json: JSONObject, val error: String? = null)
 
-    fun bootstrap(): Result { ensureSession(); return post("/functions/v1/bootstrap", JSONObject(), prefs.getString("access", null)) }
+    fun bootstrap(anonymousId: String, avatarKey: String? = null): Result {
+        ensureSession()
+        val body = JSONObject().put("anonymous_id", anonymousId)
+        if (!avatarKey.isNullOrBlank()) body.put("avatar_key", avatarKey)
+        return post("/functions/v1/bootstrap", body, prefs.getString("access", null))
+    }
+
     fun findTextMatch(): Result { ensureSession(); return post("/functions/v1/matchmaker", JSONObject().put("mode", "text").put("mood", "random"), prefs.getString("access", null)) }
     fun matchStatus(matchId: String): Result { ensureSession(); return get("/functions/v1/match-status?match_id=$matchId", prefs.getString("access", null)) }
     fun messages(matchId: String): Result { ensureSession(); return get("/functions/v1/messages?match_id=$matchId&limit=100", prefs.getString("access", null)) }
