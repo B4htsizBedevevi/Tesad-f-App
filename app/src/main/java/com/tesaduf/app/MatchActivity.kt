@@ -1,6 +1,7 @@
 package com.tesaduf.app
 
 import android.app.Activity
+import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
@@ -57,24 +58,50 @@ class MatchActivity : Activity() {
     private fun startMatch() {
         executor.execute {
             try {
+                val localPrefs = getSharedPreferences("tesaduf", Context.MODE_PRIVATE)
+                val anonymousId = localPrefs.getString("anonymous_id", null)
+                    ?: throw IllegalStateException("Anonim kimlik bulunamadı. Lütfen uygulamayı yeniden başlat.")
+                val avatar = localPrefs.getString("avatar", null)
+                val avatarKey = avatarKey(avatar)
                 val api = SupabaseApi(this)
-                val bootstrap = api.bootstrap()
+
+                handler.post { status.text = "Bağlanıyoruz…"; detail.text = "Anonim kimliğin güvenli şekilde hazırlanıyor." }
+                val bootstrap = api.bootstrap(anonymousId, avatarKey)
                 if (!bootstrap.ok) throw IllegalStateException(bootstrap.error ?: "Profil başlatılamadı")
+
                 val profile = bootstrap.json.optJSONObject("profile")
-                profile?.optString("anonymous_id")?.takeIf { it.isNotBlank() }?.let { id ->
-                    getSharedPreferences("tesaduf", MODE_PRIVATE).edit().putString("anonymous_id", id).apply()
+                val serverId = profile?.optString("anonymous_id")?.takeIf { it.isNotBlank() }
+                if (serverId != null && serverId != anonymousId) {
+                    throw IllegalStateException("Anonim kimlik doğrulanamadı. Lütfen tekrar dene.")
                 }
+
+                handler.post { status.text = "Tesadüf aranıyor…"; detail.text = "Sana uygun anonim bir sohbet arkadaşı buluyoruz." }
                 val result = api.findTextMatch()
                 if (!result.ok) throw IllegalStateException(result.error ?: "Eşleştirme başlatılamadı")
                 val match = result.json.optJSONObject("match") ?: throw IllegalStateException("Eşleşme bilgisi alınamadı")
-                matchId = match.optString("id").takeIf { it.isNotBlank() }
+                matchId = match.optString("id").takeIf { it.isNotBlank() } ?: throw IllegalStateException("Eşleşme kimliği alınamadı")
                 val matched = result.json.optBoolean("matched", false) || match.optString("status") == "active"
                 handler.post { if (matched) openChat(result.json) else { status.text = "Birini arıyoruz…"; detail.text = "Bekleyen bir tesadüf var. Birazdan eşleşebilirsiniz." } }
                 if (!matched) poll(api)
             } catch (e: Exception) {
-                handler.post { status.text = "Bir şey ters gitti"; detail.text = e.message ?: "Lütfen tekrar dene." }
+                handler.post {
+                    status.text = "Bağlantı kurulamadı"
+                    detail.text = e.message ?: "Lütfen internet bağlantını kontrol edip tekrar dene."
+                }
             }
         }
+    }
+
+    private fun avatarKey(avatar: String?): String? = when (avatar) {
+        "🌙" -> "avatar_01"
+        "⚡" -> "avatar_02"
+        "🎧" -> "avatar_03"
+        "🐺" -> "avatar_04"
+        "🦊" -> "avatar_05"
+        "🌌" -> "avatar_06"
+        "🎮" -> "avatar_07"
+        "🪐" -> "avatar_08"
+        else -> null
     }
 
     private fun poll(api: SupabaseApi) {
@@ -83,8 +110,8 @@ class MatchActivity : Activity() {
         while (running && attempts < 150) {
             Thread.sleep(2000)
             if (!running) return
-            val r = api.matchStatus(id)
-            if (!r.ok) { attempts++; continue }
+            val r = runCatching { api.matchStatus(id) }.getOrNull()
+            if (r == null || !r.ok) { attempts++; continue }
             val match = r.json.optJSONObject("match") ?: return
             val state = match.optString("status")
             if (state == "active" || state == "destiny") {
@@ -102,8 +129,9 @@ class MatchActivity : Activity() {
 
     private fun openChat(json: org.json.JSONObject) {
         if (!running) return
+        val id = json.optJSONObject("match")?.optString("id")?.takeIf { it.isNotBlank() } ?: matchId ?: return
         val intent = android.content.Intent(this, ChatActivity::class.java)
-        intent.putExtra("match_id", json.optJSONObject("match")?.optString("id"))
+        intent.putExtra("match_id", id)
         intent.putExtra("partner_id", json.optString("partner_anonymous_id", "Tesadüf"))
         startActivity(intent)
         finish()
