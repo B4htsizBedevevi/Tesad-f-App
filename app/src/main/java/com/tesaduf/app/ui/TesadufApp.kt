@@ -41,9 +41,9 @@ fun TesadufApp(vm:TesadufViewModel){
 
 @Composable
 fun Home(s:TesadufState,vm:TesadufViewModel){
-    var slogan by remember{mutableStateOf(Slogans.random())}
+    var slogan by remember{mutableStateOf(HomeSlogans.random())}
     var mood by remember{mutableStateOf(s.selectedMood)}
-    LaunchedEffect(Unit){while(true){delay(6500);slogan=Slogans.random()}}
+    LaunchedEffect(Unit){while(true){delay(6500);slogan=HomeSlogans.random()}}
 
     Scaffold(bottomBar={BottomBar("home",vm)}){
         LazyColumn(
@@ -106,14 +106,18 @@ fun Home(s:TesadufState,vm:TesadufViewModel){
 
 @Composable
 fun Searching(vm:TesadufViewModel){
+    var slogan by remember{mutableStateOf(SearchSlogans.random())}
+    LaunchedEffect(Unit){while(true){delay(4200);slogan=SearchSlogans.random()}}
     Box(Modifier.fillMaxSize().padding(24.dp),contentAlignment=Alignment.Center){
         Column(horizontalAlignment=Alignment.CenterHorizontally){
+            Text("✦",style=MaterialTheme.typography.displaySmall,color=MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.height(18.dp))
+            Text("Bir tesadüf aranıyor…",style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.SemiBold)
+            Spacer(Modifier.height(10.dp))
+            Text(slogan,style=MaterialTheme.typography.bodyLarge)
+            Spacer(Modifier.height(26.dp))
             CircularProgressIndicator(color=MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(22.dp))
-            Text("Bir tesadüf aranıyor…",style=MaterialTheme.typography.headlineSmall)
-            Spacer(Modifier.height(8.dp))
-            Text("Bakalım bugün kime denk geleceksin…")
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(26.dp))
             OutlinedButton(onClick={vm.leave}){Text("Aramayı iptal et")}
         }
     }
@@ -287,12 +291,48 @@ private fun BottomBar(selected:String,vm:TesadufViewModel){
     }
 }
 
-private val Slogans=listOf(
+private val HomeSlogans=listOf(
     "Bazen en iyi sohbetler planlanmaz.",
     "İyi sohbetler tesadüfen başlar.",
     "Karşına kim çıkacak?",
     "Sadece yaz. Gerisini tesadüfe bırak.",
-    "Bugün kimin hikâyesine denk geleceksin?"
+    "Bugün kimin hikâyesine denk geleceksin?",
+    "Bir yabancı. Bir sohbet.",
+    "Tesadüfen karşılaş. Gerçekten konuş.",
+    "Yollar kesişir, sohbet başlar.",
+    "Kiminle karşılaşacağını bilemezsin.",
+    "Her karşılaşmanın bir hikâyesi vardır.",
+    "Tanımadığın biri, bilmediğin bir hikâye.",
+    "Belki de bugün birine denk gelirsin.",
+    "Tesadüf seni nereye götürür?"
+)
+
+private val SearchSlogans=listOf(
+    "Bakalım bugün kime denk geleceksin…",
+    "Bir yabancı aranıyor…",
+    "Belki de aradığın sohbet birazdan karşında.",
+    "Yollarınız kesişmek üzere…",
+    "Bugünün tesadüfü hazırlanıyor…",
+    "Kaderin değil, tesadüfün peşindeyiz.",
+    "Bir yerlerde biri de seni bekliyor.",
+    "Tesadüf için doğru anı kolluyoruz."
+)
+
+private val MatchSlogans=listOf(
+    "İşte o an. Bir tesadüf gerçekleşti.",
+    "Yollarınız kesişti. Şimdi sıra sohbette.",
+    "Karşında yepyeni bir hikâye var.",
+    "Bugünün tesadüfü başladı.",
+    "Bakalım bu sohbet nereye gidecek?",
+    "Tanımadığın biriyle tanışmanın en güzel yolu: bir merhaba."
+)
+
+private val DestinySlogans=listOf(
+    "Tesadüf yerini kadere bıraktı. ✨",
+    "Bugünün tesadüfü, yarının hikâyesi olabilir.",
+    "İki taraf da seçti. Sohbetiniz artık size ait.",
+    "Bazı tesadüfler biraz daha uzun sürmeli.",
+    "Belki de bu karşılaşma tesadüf değildi."
 )
 
 @Composable fun Center(t:String){Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){Text(t,style=MaterialTheme.typography.headlineMedium)}}
