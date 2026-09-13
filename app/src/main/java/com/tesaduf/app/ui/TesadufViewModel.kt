@@ -30,7 +30,9 @@ data class TesadufState(
     val decisionVisible:Boolean=false,
     val destiny:Boolean=false,
     val currentTab:String="home",
-    val selectedMood:String?=null
+    val selectedMood:String?=null,
+    val decisionSent:Boolean=false,
+    val waitingForOther:Boolean=false
 )
 
 class TesadufViewModel:ViewModel(){
@@ -122,7 +124,7 @@ class TesadufViewModel:ViewModel(){
                         expiresAt=m?.expires_at,
                         destiny=m?.status=="destiny"
                     )
-                    if(active&&m!=null){load(m.id);startMessagePolling(m.id)}
+                    if(active&&m!=null){load(m.id);startMessagePolling(m.id);startStatusPolling(m.id)}
                     else if(m?.id!=null)watchWaiting(m.id)
                 }
                 .onFailure{e->_state.value=_state.value.copy(searching=false,error=e.message?:"Eşleşme başlatılamadı")}
@@ -145,9 +147,9 @@ class TesadufViewModel:ViewModel(){
                                 _state.value=_state.value.copy(
                                     searching=false,matchId=m.id,matchStatus=m.status,
                                     partnerId=response.partner_anonymous_id,partnerUserId=partner,
-                                    expiresAt=m.expires_at,destiny=m.status=="destiny"
+                                    expiresAt=m.expires_at,destiny=m.status=="destiny",decisionSent=false,waitingForOther=false
                                 )
-                                load(m.id);startMessagePolling(m.id);return@launch
+                                load(m.id);startMessagePolling(m.id);startStatusPolling(m.id);return@launch
                             }
                             "expired","ended"->{
                                 _state.value=_state.value.copy(searching=false,ended=true,matchId=null,matchStatus=m.status)
@@ -222,7 +224,7 @@ class TesadufViewModel:ViewModel(){
         }
     }
 
-    fun showDecision(){if(!_state.value.destiny&&!_state.value.decisionVisible)_state.value=_state.value.copy(decisionVisible=true)}
+    fun showDecision(){if(!_state.value.destiny&&!_state.value.decisionVisible&&!_state.value.decisionSent)_state.value=_state.value.copy(decisionVisible=true)}
 
     fun blockCurrent(){
         val id=_state.value.partnerUserId?:return
@@ -249,7 +251,7 @@ class TesadufViewModel:ViewModel(){
             if(id!=null)runCatching{repo.end(id)}
             _state.value=_state.value.copy(
                 ended=true,searching=false,matchId=null,matchStatus="ended",
-                decisionVisible=false,currentTab="home"
+                decisionVisible=false,decisionSent=false,waitingForOther=false,currentTab="home"
             )
         }
     }
