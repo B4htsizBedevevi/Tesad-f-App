@@ -70,17 +70,17 @@ class ChatActivity : Activity() {
             val arr = r.json.optJSONArray("messages") ?: return@execute
             handler.post {
                 messagesBox.removeAllViews()
+                val mineId = getSharedPreferences("tesaduf_session", MODE_PRIVATE).getString("user_id", null)
                 for (i in 0 until arr.length()) {
                     val m = arr.optJSONObject(i) ?: continue
-                    addMessage(m.optString("body"), m.optString("sender_id"))
+                    addMessage(m.optString("body"), m.optString("sender_id") == mineId)
                 }
             }
         }
         handler.postDelayed({ if (running) refreshMessages() }, 2500)
     }
 
-    private fun addMessage(text: String, sender: String) {
-        val mine = sender.isNotBlank() && sender == "me"
+    private fun addMessage(text: String, mine: Boolean) {
         val v = TextView(this).apply { this.text = text; textSize = 15f; setTextColor(Color.WHITE); setPadding(14,10,14,10); background = GradientDrawable().apply { setColor(if (mine) Color.rgb(53,47,105) else Color.rgb(17,20,38)); cornerRadius = 18f } }
         val row = LinearLayout(this).apply { gravity = if (mine) Gravity.END else Gravity.START }
         row.addView(v, LinearLayout.LayoutParams(-2,-2).apply { setMargins(0,0,0,8) })
@@ -93,10 +93,7 @@ class ChatActivity : Activity() {
         input.setText("")
         executor.execute {
             val r = runCatching { SupabaseApi(this).sendMessage(matchId, text) }.getOrNull()
-            handler.post {
-                if (r?.ok == true) refreshMessages()
-                else { input.setText(text) }
-            }
+            handler.post { if (r?.ok != true) input.setText(text) }
         }
     }
 
