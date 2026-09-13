@@ -14,49 +14,46 @@ class SupabaseApi(context: Context) {
 
     data class Result(val ok: Boolean, val json: JSONObject, val error: String? = null)
 
-    fun bootstrap(): Result {
-        ensureSession()
-        return call("bootstrap", JSONObject())
-    }
-
-    fun findTextMatch(): Result {
-        ensureSession()
-        return call("matchmaker", JSONObject().put("mode", "text").put("mood", "random"))
-    }
+    fun bootstrap(): Result { ensureSession(); return call("bootstrap", JSONObject()) }
+    fun findTextMatch(): Result { ensureSession(); return call("matchmaker", JSONObject().put("mode", "text").put("mood", "random")) }
+    fun matchStatus(matchId: String): Result { ensureSession(); return get("/functions/v1/match-status?match_id=$matchId", prefs.getString("access", null)) }
 
     private fun ensureSession() {
         if (key.isBlank()) error("Backend anahtarı yapılandırılmamış")
         if (!prefs.getString("access", null).isNullOrBlank()) return
-        val r = request("/auth/v1/signup", JSONObject())
+        val r = post("/auth/v1/signup", JSONObject(), null)
         if (!r.ok) error(r.error ?: "Anonim oturum açılamadı")
         save(r.json)
     }
 
-    private fun call(name: String, body: JSONObject): Result =
-        request("/functions/v1/$name", body, prefs.getString("access", null))
+    private fun call(name: String, body: JSONObject): Result = post("/functions/v1/$name", body, prefs.getString("access", null))
 
-    private fun request(path: String, body: JSONObject, token: String? = null): Result {
-        var r = raw(path, body, token)
-        if (!r.ok && token != null && r.json.optInt("code") == 401 && refresh()) {
-            r = raw(path, body, prefs.getString("access", null))
-        }
+    private fun post(path: String, body: JSONObject, token: String?): Result {
+        var r = raw(path, "POST", body, token)
+        if (!r.ok && token != null && r.json.optInt("code") == 401 && refresh()) r = raw(path, "POST", body, prefs.getString("access", null))
         if (r.ok) save(r.json)
         return r
     }
 
-    private fun raw(path: String, body: JSONObject, token: String?): Result {
+    private fun get(path: String, token: String?): Result {
+        var r = raw(path, "GET", JSONObject(), token)
+        if (!r.ok && token != null && r.json.optInt("code") == 401 && refresh()) r = raw(path, "GET", JSONObject(), prefs.getString("access", null))
+        return r
+    }
+
+    private fun raw(path: String, method: String, body: JSONObject, token: String?): Result {
         val c = (URL(base + path).openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"
+            requestMethod = method
             connectTimeout = 12000
             readTimeout = 15000
-            doOutput = true
+            doOutput = method == "POST"
             setRequestProperty("apikey", key)
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Accept", "application/json")
             if (!token.isNullOrBlank()) setRequestProperty("Authorization", "Bearer $token")
         }
         return try {
-            c.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
+            if (method == "POST") c.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
             val code = c.responseCode
             val stream = if (code in 200..299) c.inputStream else c.errorStream
             val text = stream?.let { BufferedReader(InputStreamReader(it)).use(BufferedReader::readText) } ?: "{}"
@@ -67,7 +64,7 @@ class SupabaseApi(context: Context) {
 
     private fun refresh(): Boolean {
         val refresh = prefs.getString("refresh", null) ?: return false
-        val r = raw("/auth/v1/token?grant_type=refresh_token", JSONObject().put("refresh_token", refresh), null)
+        val r = raw("/auth/v1/token?grant_type=refresh_token", "POST", JSONObject().put("refresh_token", refresh), null)
         if (!r.ok) return false
         save(r.json)
         return true
