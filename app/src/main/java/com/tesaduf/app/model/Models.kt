@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 @Serializable data class Profile(val id:String,val anonymous_id:String,val status:String)
 @Serializable data class Match(
     val id:String,val user_a:String,val user_b:String?=null,val mode:String,val status:String,
-    val started_at:String?=null,val expires_at:String?=null,val ended_at:String?=null,
+    val started_at:String?=null,val expires_at:String?=null,val ended_at:String?=null,val decision_deadline:String?=null,
     val decision_a:Boolean?=null,val decision_b:Boolean?=null
 )
 @Serializable data class MatchResponse(
