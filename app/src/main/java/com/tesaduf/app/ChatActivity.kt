@@ -45,7 +45,7 @@ class ChatActivity : Activity() {
         header.addView(end, LinearLayout.LayoutParams(90,50))
         root.addView(header)
 
-        val scroll = ScrollView(this).apply { fillViewport = true }
+        val scroll = ScrollView(this).apply { isFillViewport = true }
         messagesBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(18,10,18,18) }
         scroll.addView(messagesBox)
         root.addView(scroll, LinearLayout.LayoutParams(-1,0,1f))
