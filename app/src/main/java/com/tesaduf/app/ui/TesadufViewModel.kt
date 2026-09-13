@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 data class TesadufState(
     val anonymousId:String?=null,
     val matchId:String?=null,
+    val waitingMatchId:String?=null,
     val matchStatus:String?=null,
     val partnerId:String?=null,
     val partnerUserId:String?=null,
@@ -87,10 +88,10 @@ class TesadufViewModel:ViewModel(){
                     val partner=if(m.user_a==me)m.user_b else m.user_a
                     if(m.status in listOf("active","destiny")){
                         _state.value=_state.value.copy(
-                            currentTab="home",matchId=m.id,matchStatus=m.status,
+                            currentTab="home",matchId=m.id,waitingMatchId=null,matchStatus=m.status,
                             partnerId=r.partner_anonymous_id,partnerUserId=partner,
                             expiresAt=m.expires_at,destiny=m.status=="destiny",
-                            ended=false,decisionVisible=false
+                            ended=false,decisionVisible=false,decisionSent=false,waitingForOther=false
                         )
                         load(m.id);startMessagePolling(m.id);startStatusPolling(m.id)
                     }else{
@@ -106,8 +107,9 @@ class TesadufViewModel:ViewModel(){
         viewModelScope.launch{
             _state.value=_state.value.copy(
                 searching=true,ended=false,decisionVisible=false,destiny=false,
-                error=null,matchId=null,matchStatus=null,partnerId=null,partnerUserId=null,
-                expiresAt=null,messages=emptyList(),currentTab="home",selectedMood=mood
+                error=null,matchId=null,waitingMatchId=null,matchStatus=null,partnerId=null,partnerUserId=null,
+                expiresAt=null,messages=emptyList(),currentTab="home",selectedMood=mood,
+                decisionSent=false,waitingForOther=false
             )
             runCatching{repo.match(mood)}
                 .onSuccess{response->
@@ -118,6 +120,7 @@ class TesadufViewModel:ViewModel(){
                     _state.value=_state.value.copy(
                         searching=!active,
                         matchId=if(active)m?.id else null,
+                        waitingMatchId=if(active)null else m?.id,
                         matchStatus=m?.status,
                         partnerId=response.partner_anonymous_id,
                         partnerUserId=partner,
@@ -145,21 +148,21 @@ class TesadufViewModel:ViewModel(){
                         when(m.status){
                             "active","destiny"->{
                                 _state.value=_state.value.copy(
-                                    searching=false,matchId=m.id,matchStatus=m.status,
+                                    searching=false,matchId=m.id,waitingMatchId=null,matchStatus=m.status,
                                     partnerId=response.partner_anonymous_id,partnerUserId=partner,
                                     expiresAt=m.expires_at,destiny=m.status=="destiny",decisionSent=false,waitingForOther=false
                                 )
                                 load(m.id);startMessagePolling(m.id);startStatusPolling(m.id);return@launch
                             }
                             "expired","ended"->{
-                                _state.value=_state.value.copy(searching=false,ended=true,matchId=null,matchStatus=m.status)
+                                _state.value=_state.value.copy(searching=false,ended=true,matchId=null,waitingMatchId=null,matchStatus=m.status)
                                 return@launch
                             }
                         }
                     }
                     .onFailure{e->_state.value=_state.value.copy(error=e.message)}
             }
-            _state.value=_state.value.copy(searching=false)
+            _state.value=_state.value.copy(searching=false,waitingMatchId=null)
         }
     }
 
@@ -216,7 +219,7 @@ class TesadufViewModel:ViewModel(){
                 .onSuccess{r->
                     when(r.status){
                         "active"->_state.value=_state.value.copy(decisionVisible=false,decisionSent=true,waitingForOther=true,error=null)
-                        "destiny"->_state.value=_state.value.copy( matchStatus="destiny",destiny=true,decisionVisible=false,expiresAt=null,error=null,waitingForOther=false)
+                        "destiny"->_state.value=_state.value.copy(matchStatus="destiny",destiny=true,decisionVisible=false,expiresAt=null,error=null,waitingForOther=false)
                         "ended","expired"->{messageJob?.cancel();statusJob?.cancel();_state.value=_state.value.copy(ended=true,decisionVisible=false,matchId=null,matchStatus=r.status,decisionSent=false,waitingForOther=false)}
                     }
                 }
@@ -246,11 +249,13 @@ class TesadufViewModel:ViewModel(){
 
     fun leave(){
         waitingJob?.cancel();messageJob?.cancel();statusJob?.cancel()
-        val id=_state.value.matchId
+        val activeId=_state.value.matchId
+        val waitingId=_state.value.waitingMatchId
         viewModelScope.launch{
-            if(id!=null)runCatching{repo.end(id)}
+            if(activeId!=null)runCatching{repo.end(activeId)}
+            else if(waitingId!=null)runCatching{repo.end(waitingId)}
             _state.value=_state.value.copy(
-                ended=true,searching=false,matchId=null,matchStatus="ended",
+                ended=true,searching=false,matchId=null,waitingMatchId=null,matchStatus="ended",
                 decisionVisible=false,decisionSent=false,waitingForOther=false,currentTab="home"
             )
         }
