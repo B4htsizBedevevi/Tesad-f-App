@@ -9,6 +9,9 @@ concurrency:
   group: tesaduf-android-build
   cancel-in-progress: true
 
+env:
+  ORG_GRADLE_PROJECT_supabasePublishableKey: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
