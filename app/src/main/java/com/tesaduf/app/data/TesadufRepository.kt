@@ -50,6 +50,7 @@ class TesadufRepository {
     }
 
     suspend fun bootstrap():ProfileResponse=call("bootstrap")
+    suspend fun heartbeat():ActionResponse=call("heartbeat")
     suspend fun match(mood:String?):MatchResponse=call("matchmaker",body=buildJsonObject{put("mode","text");mood?.let{put("mood",it)}})
     suspend fun status(id:String):MatchResponse=call("match-status",HttpMethod.Get,params=mapOf("match_id" to id))
     suspend fun getMessages(id:String):List<Message>=call<MessagesResponse>("messages",HttpMethod.Get,params=mapOf("match_id" to id)).messages
