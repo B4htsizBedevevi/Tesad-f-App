@@ -29,7 +29,8 @@ data class TesadufState(
     val ended:Boolean=false,
     val decisionVisible:Boolean=false,
     val destiny:Boolean=false,
-    val currentTab:String="home"
+    val currentTab:String="home",
+    val selectedMood:String?=null
 )
 
 class TesadufViewModel:ViewModel(){
@@ -98,15 +99,15 @@ class TesadufViewModel:ViewModel(){
         }
     }
 
-    fun find(){
+    fun find(mood:String?=_state.value.selectedMood){
         waitingJob?.cancel();messageJob?.cancel();statusJob?.cancel()
         viewModelScope.launch{
             _state.value=_state.value.copy(
                 searching=true,ended=false,decisionVisible=false,destiny=false,
                 error=null,matchId=null,matchStatus=null,partnerId=null,partnerUserId=null,
-                expiresAt=null,messages=emptyList(),currentTab="home"
+                expiresAt=null,messages=emptyList(),currentTab="home",selectedMood=mood
             )
-            runCatching{repo.match()}
+            runCatching{repo.match(mood)}
                 .onSuccess{response->
                     val m=response.match
                     val active=m?.status=="active"||m?.status=="destiny"
