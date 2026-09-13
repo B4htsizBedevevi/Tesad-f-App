@@ -9,6 +9,9 @@ concurrency:
   group: tesaduf-android-build
   cancel-in-progress: true
 
+env:
+  SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
