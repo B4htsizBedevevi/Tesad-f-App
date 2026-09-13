@@ -180,7 +180,8 @@ fun Chat(s:TesadufState,vm:TesadufViewModel){
         }
     }
 
-    LaunchedEffect(s.matchId){while(s.matchId!=null&&!s.ended){delay(3500);s.matchId?.let(vm::load)}}
+    // Message polling is owned by the ViewModel. Keeping a second UI polling loop
+    // here caused duplicate network requests and unnecessary recompositions.
 
     if(showReport){
         AlertDialog(
@@ -244,6 +245,10 @@ fun Chat(s:TesadufState,vm:TesadufViewModel){
                         Text("⏱️ Tesadüfün kalan süresi %02d:%02d".format(mins,secs),fontWeight=FontWeight.SemiBold)
                     }else{
                         Text("✨ KADER — artık süreniz yok",fontWeight=FontWeight.SemiBold,color=MaterialTheme.colorScheme.primary)
+                    }
+                    if(s.waitingForOther){
+                        Spacer(Modifier.height(8.dp))
+                        Text("⏳ Karşı tarafın kararını bekliyoruz…",color=MaterialTheme.colorScheme.primary)
                     }
                     if(showCard){
                         Spacer(Modifier.height(10.dp))
