@@ -6,7 +6,7 @@
         android:label="Tesadüf"
         android:theme="@style/Theme.Tesaduf"
         android:supportsRtl="true"
-        android:icon="@drawable/ic_launcher">
+        android:icon="@drawable/tesaduf_logo">
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
