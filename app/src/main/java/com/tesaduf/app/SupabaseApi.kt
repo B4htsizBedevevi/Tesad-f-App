@@ -14,9 +14,11 @@ class SupabaseApi(context: Context) {
 
     data class Result(val ok: Boolean, val json: JSONObject, val error: String? = null)
 
-    fun bootstrap(): Result { ensureSession(); return call("bootstrap", JSONObject()) }
-    fun findTextMatch(): Result { ensureSession(); return call("matchmaker", JSONObject().put("mode", "text").put("mood", "random")) }
+    fun bootstrap(): Result { ensureSession(); return post("/functions/v1/bootstrap", JSONObject(), prefs.getString("access", null)) }
+    fun findTextMatch(): Result { ensureSession(); return post("/functions/v1/matchmaker", JSONObject().put("mode", "text").put("mood", "random"), prefs.getString("access", null)) }
     fun matchStatus(matchId: String): Result { ensureSession(); return get("/functions/v1/match-status?match_id=$matchId", prefs.getString("access", null)) }
+    fun messages(matchId: String): Result { ensureSession(); return get("/functions/v1/messages?match_id=$matchId&limit=100", prefs.getString("access", null)) }
+    fun sendMessage(matchId: String, text: String): Result { ensureSession(); return post("/functions/v1/send-message", JSONObject().put("match_id", matchId).put("body", text), prefs.getString("access", null)) }
 
     private fun ensureSession() {
         if (key.isBlank()) error("Backend anahtarı yapılandırılmamış")
@@ -25,8 +27,6 @@ class SupabaseApi(context: Context) {
         if (!r.ok) error(r.error ?: "Anonim oturum açılamadı")
         save(r.json)
     }
-
-    private fun call(name: String, body: JSONObject): Result = post("/functions/v1/$name", body, prefs.getString("access", null))
 
     private fun post(path: String, body: JSONObject, token: String?): Result {
         var r = raw(path, "POST", body, token)
