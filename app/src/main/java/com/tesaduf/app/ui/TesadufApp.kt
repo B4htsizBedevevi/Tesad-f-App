@@ -52,7 +52,8 @@ fun Home(s:TesadufState,vm:TesadufViewModel){
             contentPadding=PaddingValues(top=34.dp,bottom=30.dp)
         ){
             item{
-                Text("✦",style=MaterialTheme.typography.displayLarge,color=MaterialTheme.colorScheme.primary)
+                TesadufMark(Modifier.size(92.dp))
+                Spacer(Modifier.height(8.dp))
                 Text("TESADÜF",style=MaterialTheme.typography.displaySmall,fontWeight=FontWeight.Bold)
                 Spacer(Modifier.height(6.dp))
                 Text(slogan,style=MaterialTheme.typography.titleMedium)
@@ -334,6 +335,22 @@ private val DestinySlogans=listOf(
     "Bazı tesadüfler biraz daha uzun sürmeli.",
     "Belki de bu karşılaşma tesadüf değildi."
 )
+
+@Composable
+private fun TesadufMark(modifier:Modifier=Modifier){
+    Canvas(modifier){
+        val c=Offset(size.width/2,size.height/2)
+        val r=size.minDimension*0.39f
+        drawCircle(
+            brush=Brush.sweepGradient(listOf(Color(0xFF2FB8FF),Color(0xFF704CFF),Color(0xFFFF42B7),Color(0xFF2FB8FF))),
+            radius=r,center=c,style=Stroke(width=size.minDimension*0.035f)
+        )
+        val rect=androidx.compose.ui.geometry.Rect(size.width*0.12f,size.height*0.25f,size.width*0.88f,size.height*0.75f)
+        drawArc(Brush.linearGradient(listOf(Color(0xFF35B9FF),Color(0xFF7A55FF))),205f,150f,false,rect.topLeft,rect.size,style=Stroke(width=size.minDimension*0.07f))
+        drawArc(Brush.linearGradient(listOf(Color(0xFFFF42B8),Color(0xFFFFC56F))),25f,150f,false,rect.topLeft,rect.size,style=Stroke(width=size.minDimension*0.07f))
+        drawCircle(Color(0xFFFFE7AC),radius=size.minDimension*0.055f,center=c)
+    }
+}
 
 @Composable fun Center(t:String){Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){Text(t,style=MaterialTheme.typography.headlineMedium)}}
 @Composable fun ErrorCenter(t:String){Column(Modifier.fillMaxSize().padding(24.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center){Text("Bir şeyler ters gitti",style=MaterialTheme.typography.headlineSmall);Spacer(Modifier.height(12.dp));Text(t)}}
