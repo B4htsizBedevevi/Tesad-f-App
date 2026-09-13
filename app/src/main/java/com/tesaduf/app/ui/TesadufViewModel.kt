@@ -90,7 +90,7 @@ class TesadufViewModel:ViewModel(){
                             expiresAt=m.expires_at,destiny=m.status=="destiny",
                             ended=false,decisionVisible=false
                         )
-                        load(m.id);startMessagePolling(m.id)
+                        load(m.id);startMessagePolling(m.id);startStatusPolling(m.id)
                     }else{
                         _state.value=_state.value.copy(error="Bu sohbet artık aktif değil.")
                     }
@@ -161,6 +161,23 @@ class TesadufViewModel:ViewModel(){
         }
     }
 
+    private fun startStatusPolling(id:String){
+        statusJob?.cancel()
+        statusJob=viewModelScope.launch{
+            while(_state.value.matchId==id&&!_state.value.ended){
+                delay(3500)
+                runCatching{repo.status(id)}.onSuccess{r->
+                    val m=r.match?:return@onSuccess
+                    when(m.status){
+                        "destiny"->_state.value=_state.value.copy(matchStatus="destiny",destiny=true,expiresAt=null,decisionVisible=false,waitingForOther=false)
+                        "expired","ended"->_state.value=_state.value.copy(ended=true,matchId=null,matchStatus=m.status,decisionVisible=false)
+                        "active"->_state.value=_state.value.copy(matchStatus="active",partnerId=r.partner_anonymous_id)
+                    }
+                }
+            }
+        }
+    }
+
     private fun startMessagePolling(id:String){
         messageJob?.cancel()
         messageJob=viewModelScope.launch{
@@ -196,8 +213,9 @@ class TesadufViewModel:ViewModel(){
             runCatching{repo.destiny(id,keep)}
                 .onSuccess{r->
                     when(r.status){
-                        "destiny"->_state.value=_state.value.copy(matchStatus="destiny",destiny=true,decisionVisible=false,expiresAt=null,error=null)
-                        "ended","expired"->{messageJob?.cancel();_state.value=_state.value.copy(ended=true,decisionVisible=false,matchId=null,matchStatus=r.status)}
+                        "active"->_state.value=_state.value.copy(decisionVisible=false,decisionSent=true,waitingForOther=true,error=null)
+                        "destiny"->_state.value=_state.value.copy( matchStatus="destiny",destiny=true,decisionVisible=false,expiresAt=null,error=null,waitingForOther=false)
+                        "ended","expired"->{messageJob?.cancel();statusJob?.cancel();_state.value=_state.value.copy(ended=true,decisionVisible=false,matchId=null,matchStatus=r.status,decisionSent=false,waitingForOther=false)}
                     }
                 }
                 .onFailure{e->_state.value=_state.value.copy(error=e.message)}
