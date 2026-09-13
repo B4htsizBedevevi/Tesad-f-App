@@ -74,6 +74,7 @@ class SupabaseApi(context: Context) {
         val e = prefs.edit()
         json.optString("access_token").takeIf { it.isNotBlank() }?.let { e.putString("access", it) }
         json.optString("refresh_token").takeIf { it.isNotBlank() }?.let { e.putString("refresh", it) }
+        json.optJSONObject("user")?.optString("id")?.takeIf { it.isNotBlank() }?.let { e.putString("user_id", it) }
         e.apply()
     }
 }
