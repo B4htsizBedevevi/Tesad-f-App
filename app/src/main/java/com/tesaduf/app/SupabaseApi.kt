@@ -9,7 +9,7 @@ import java.net.URL
 
 class SupabaseApi(context: Context) {
     private val prefs = context.getSharedPreferences("tesaduf_session", Context.MODE_PRIVATE)
-    private val key = BuildConfig.API_KEY
+    private val key = BuildConfig.SUPABASE_ANON_KEY
     private val base = "https://wihagxhijxccxnaktnel.supabase.co"
 
     data class Result(val ok: Boolean, val json: JSONObject, val error: String? = null)
