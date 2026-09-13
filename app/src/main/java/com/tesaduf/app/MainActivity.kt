@@ -12,8 +12,6 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
-import java.util.Locale
-import kotlin.random.Random
 
 class MainActivity : Activity() {
     private val prefs by lazy { getSharedPreferences("tesaduf", Context.MODE_PRIVATE) }
@@ -44,7 +42,7 @@ class MainActivity : Activity() {
         root.addView(box, lp(-1, -2, 1, 0))
         setContentView(root)
         root.postDelayed({
-            if (prefs.getString("anonymous_id", null) == null) showProfileSetup() else showHome()
+            if (prefs.getString("profile_ready", null) == "yes") showHome() else showProfileSetup()
         }, 700)
     }
 
@@ -61,7 +59,7 @@ class MainActivity : Activity() {
 
         val idCard = roundedCard()
         idCard.addView(label("ANONİM KİMLİĞİN", 11f, muted, Typeface.BOLD))
-        val id = generateAnonymousId()
+        val id = getOrCreateAnonymousId()
         idCard.addView(label(id, 30f, white, Typeface.BOLD), lp(-1, -2, 1, 6))
         idCard.addView(label("Bu kodla sohbetlerde görünürsün.", 13f, muted), lp(-1, -2, 1, 2))
         content.addView(idCard, lp(-1, -2, 1, 20))
@@ -90,7 +88,7 @@ class MainActivity : Activity() {
 
         val continueButton = primaryButton("TESADÜFE BAŞLA")
         continueButton.setOnClickListener {
-            prefs.edit().putString("anonymous_id", id).putString("avatar", selected).apply()
+            prefs.edit().putString("anonymous_id", id).putString("avatar", selected).putString("profile_ready", "yes").apply()
             showHome()
         }
         content.addView(continueButton, lp(-1, dp(54), 1, 16))
@@ -113,7 +111,7 @@ class MainActivity : Activity() {
         top.addView(avatar, lp(dp(48), dp(48), 0, 0))
         val identity = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         identity.addView(label("TESADÜF", 20f, white, Typeface.BOLD))
-        identity.addView(label(prefs.getString("anonymous_id", "#?????") ?: "#?????", 13f, muted, Typeface.NORMAL), lp(-1, -2, 1, 2))
+        identity.addView(label(prefs.getString("anonymous_id", "#????????") ?: "#????????", 13f, muted, Typeface.NORMAL), lp(-1, -2, 1, 2))
         top.addView(identity, lp(0, -2, 1, 12))
         content.addView(top)
 
@@ -145,12 +143,15 @@ class MainActivity : Activity() {
         setContentView(root)
     }
 
-    private fun generateAnonymousId(): String {
-        val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-        return buildString {
-            append('#')
-            repeat(5) { append(chars[Random.nextInt(chars.length)]) }
-        }.uppercase(Locale.ROOT)
+    private fun getOrCreateAnonymousId(): String {
+        prefs.getString("anonymous_id", null)?.let { return it }
+
+        val installationId = java.util.UUID.randomUUID().toString().replace("-", "")
+        val id = "#" + installationId.substring(0, 8).uppercase(java.util.Locale.ROOT)
+
+        // Persist immediately: restarts/kills during onboarding keep the same identity.
+        prefs.edit().putString("anonymous_id", id).apply()
+        return id
     }
 
     private fun baseRoot() = LinearLayout(this).apply {
