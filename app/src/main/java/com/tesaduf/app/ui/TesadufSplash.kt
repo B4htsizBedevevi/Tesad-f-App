@@ -8,7 +8,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -121,10 +120,32 @@ fun TesadufSplash(onFinished:()->Unit){
                         center=c
                     )
                 }
-                Text("✦",style=MaterialTheme.typography.displayLarge,color=Color(0xFFFFC86E))
-                Row(horizontalArrangement=Arrangement.spacedBy((-18).dp)){
-                    Box(Modifier.size(76.dp).background(Color(0xFF2478FF),CircleShape))
-                    Box(Modifier.size(76.dp).background(Color(0xFFE83BB0),CircleShape))
+                Canvas(Modifier.fillMaxSize()){
+                    val c=Offset(size.width/2,size.height/2)
+                    drawCircle(
+                        brush=Brush.radialGradient(listOf(Color(0xFF1E7DFF).copy(alpha=0.20f),Color.Transparent)),
+                        radius=size.minDimension*0.58f,center=c
+                    )
+                    drawCircle(
+                        brush=Brush.sweepGradient(listOf(Color(0xFF2FB8FF),Color(0xFF704CFF),Color(0xFFFF42B7),Color(0xFF2FB8FF))),
+                        radius=size.minDimension*0.39f,center=c,style=Stroke(width=4f)
+                    )
+                    val left=androidx.compose.ui.geometry.Rect(size.width*0.10f,size.height*0.28f,size.width*0.90f,size.height*0.72f)
+                    drawArc(
+                        brush=Brush.linearGradient(listOf(Color(0xFF35B9FF),Color(0xFF7A55FF))),
+                        startAngle=205f,sweepAngle=155f,useCenter=false,topLeft=left.topLeft,size=left.size,style=Stroke(width=9f)
+                    )
+                    drawArc(
+                        brush=Brush.linearGradient(listOf(Color(0xFFFF42B8),Color(0xFFFFC56F))),
+                        startAngle=25f,sweepAngle=155f,useCenter=false,topLeft=left.topLeft,size=left.size,style=Stroke(width=9f)
+                    )
+                    drawCircle(Color(0xFFFFE7AC),radius=10f,center=Offset(c.x,c.y))
+                    for(i in 0 until 10){
+                        val a=(Math.PI*2*i/10)+rotation*Math.PI/180
+                        val rr=size.minDimension*0.46f
+                        drawCircle(Color.White.copy(alpha=0.5f),2.5f,
+                            Offset(c.x+(kotlin.math.cos(a)*rr).toFloat(),c.y+(kotlin.math.sin(a)*rr).toFloat()))
+                    }
                 }
             }
 
