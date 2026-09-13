@@ -6,6 +6,9 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.RectF
+import android.graphics.LinearGradient
+import android.graphics.Shader
 import android.graphics.Typeface
 import android.view.View
 import android.view.animation.OvershootInterpolator
@@ -191,6 +194,8 @@ class MainActivity : Activity() {
         val root = baseRoot()
         val scroll = ScrollView(this).apply { isFillViewport = true }
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(24), dp(32), dp(24), dp(28)) }
+        val introLogo = AnimatedLogoView(this)
+        content.addView(introLogo, lp(-1, dp(170), 1, 0))
         content.addView(label("Önce seni tanıyalım", 28f, white, Typeface.BOLD))
         content.addView(label("Kayıt yok. İsim, telefon veya e-posta istemiyoruz. Sana sadece anonim bir kimlik veriyoruz.", 15f, muted), lp(-1, -2, 1, 12))
         val idCard = roundedCard()
@@ -229,6 +234,8 @@ class MainActivity : Activity() {
     private fun showHome() {
         val root = baseRoot()
         val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(22), dp(26), dp(22), dp(18)) }
+        val logo = AnimatedLogoView(this)
+        content.addView(logo, lp(-1, dp(120), 1, 0))
         val top = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
         top.addView(label(prefs.getString("avatar", "🌙") ?: "🌙", 28f, white), lp(dp(48), dp(48), 0, 0))
         val identity = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
@@ -255,6 +262,80 @@ class MainActivity : Activity() {
         content.addView(footer, lp(-1, -2, 1, 18))
         root.addView(content, lp(-1, -1, 1, 0))
         setContentView(root)
+    }
+
+
+    private inner class AnimatedLogoView(context: Context) : View(context) {
+        private val leftPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val rightPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeCap = Paint.Cap.ROUND
+        }
+        private val starPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(255, 194, 92) }
+        private var phase = 0f
+
+        init {
+            ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = 1900
+                repeatCount = ValueAnimator.INFINITE
+                addUpdateListener {
+                    phase = it.animatedValue as Float
+                    invalidate()
+                }
+                start()
+            }
+        }
+
+        override fun onDraw(canvas: Canvas) {
+            val cx = width / 2f
+            val cy = height * 0.48f
+            val s = min(width, height) / 210f
+            val bubble = 54f * s
+            val drift = kotlin.math.sin(phase * Math.PI * 2.0).toFloat() * 5f * s
+
+            canvas.drawCircle(cx, cy, 84f * s, Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.argb(28, 80, 100, 255)
+            })
+
+            leftPaint.shader = LinearGradient(cx-bubble, cy-bubble, cx+bubble, cy+bubble,
+                intArrayOf(Color.rgb(30,126,255), Color.rgb(76,44,220)), null, Shader.TileMode.CLAMP)
+            rightPaint.shader = LinearGradient(cx+bubble, cy-bubble, cx-bubble, cy+bubble,
+                intArrayOf(Color.rgb(255,74,196), Color.rgb(172,30,217)), null, Shader.TileMode.CLAMP)
+
+            canvas.drawOval(RectF(cx-bubble*1.55f, cy-bubble+drift, cx+bubble*0.25f, cy+bubble+drift), leftPaint)
+            canvas.drawOval(RectF(cx-bubble*0.25f, cy-bubble-drift, cx+bubble*1.55f, cy+bubble-drift), rightPaint)
+
+            ringPaint.strokeWidth = 7f * s
+            ringPaint.shader = LinearGradient(cx-bubble*1.8f, cy, cx+bubble*1.8f, cy,
+                intArrayOf(Color.rgb(30,215,255), Color.rgb(142,77,255), Color.rgb(255,84,199)),
+                null, Shader.TileMode.CLAMP)
+
+            val a = Path().apply {
+                moveTo(cx-bubble*1.55f, cy+drift)
+                cubicTo(cx-bubble, cy-bubble, cx+bubble, cy+bubble, cx+bubble*1.55f, cy-drift)
+            }
+            val b = Path().apply {
+                moveTo(cx-bubble*1.55f, cy-drift)
+                cubicTo(cx-bubble, cy+bubble, cx+bubble, cy-bubble, cx+bubble*1.55f, cy+drift)
+            }
+            canvas.drawPath(a, ringPaint)
+            canvas.drawPath(b, ringPaint)
+            drawStar(canvas, cx, cy-bubble*1.55f, 13f*s + phase*2f*s)
+        }
+
+        private fun drawStar(canvas: Canvas, x: Float, y: Float, r: Float) {
+            val p = Path()
+            for (i in 0 until 8) {
+                val ang = Math.toRadians((-90 + i*45).toDouble())
+                val rr = if (i % 2 == 0) r else r*0.34f
+                val px = x + kotlin.math.cos(ang).toFloat()*rr
+                val py = y + kotlin.math.sin(ang).toFloat()*rr
+                if (i == 0) p.moveTo(px, py) else p.lineTo(px, py)
+            }
+            p.close()
+            canvas.drawPath(p, starPaint)
+        }
     }
 
     private fun getOrCreateAnonymousId(): String {
