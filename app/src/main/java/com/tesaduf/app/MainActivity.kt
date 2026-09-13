@@ -2,7 +2,15 @@ package com.tesaduf.app
 
 import android.app.Activity
 import android.content.Context
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.Typeface
+import android.view.View
+import android.view.animation.OvershootInterpolator
+import android.animation.ValueAnimator
+import kotlin.math.min
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -29,13 +37,154 @@ class MainActivity : Activity() {
     }
 
     private fun showSplash() {
-        val root = baseRoot()
-        val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
-        box.addView(label("TESADÜF", 38f, white, Typeface.BOLD))
-        box.addView(label("İyi sohbetler tesadüfen başlar.", 15f, muted), lp(0, 44, 1, 0))
-        root.addView(box, lp(-1, -2, 1, 0))
-        setContentView(root)
-        root.postDelayed({ if (prefs.getString("profile_ready", null) == "yes") showHome() else showProfileSetup() }, 700)
+        val splash = TesadufSplashView(this)
+        setContentView(splash)
+        splash.postDelayed({
+            splash.animateExit {
+                if (prefs.getString("profile_ready", null) == "yes") showHome() else showProfileSetup()
+            }
+        }, 1550)
+    }
+
+    private inner class TesadufSplashView(context: Context) : View(context) {
+        private val cyan = Color.rgb(42, 190, 255)
+        private val violet = Color.rgb(110, 90, 255)
+        private val pink = Color.rgb(238, 65, 205)
+        private val gold = Color.rgb(255, 194, 92)
+        private val pathPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeCap = Paint.Cap.ROUND
+            strokeWidth = 7f
+        }
+        private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = white
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        }
+        private val subPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = muted
+            textAlign = Paint.Align.CENTER
+        }
+        private val starPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = gold }
+        private var progress = 0f
+        private var pulse = 0f
+        private var titleAlpha = 0f
+        private var subtitleAlpha = 0f
+
+        init {
+            ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = 1100
+                interpolator = OvershootInterpolator(0.7f)
+                addUpdateListener {
+                    progress = it.animatedValue as Float
+                    invalidate()
+                }
+                start()
+            }
+            ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = 1400
+                repeatCount = ValueAnimator.INFINITE
+                addUpdateListener {
+                    pulse = it.animatedValue as Float
+                    invalidate()
+                }
+                start()
+            }
+            postDelayed({
+                titleAlpha = 1f
+                subtitleAlpha = 1f
+                invalidate()
+            }, 420)
+        }
+
+        override fun onDraw(canvas: Canvas) {
+            canvas.drawColor(bg)
+            val cx = width / 2f
+            val cy = height * 0.40f
+            val scale = min(width, height) / 430f
+            val rx = 92f * scale
+            val ry = 68f * scale
+
+            pathPaint.strokeWidth = 6f * scale
+
+            val glow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = Color.argb((34 + pulse * 28).toInt(), 90, 100, 255)
+            }
+            canvas.drawCircle(cx, cy, (95f + pulse * 25f) * scale, glow)
+
+            val left = Path().apply {
+                moveTo(cx - rx * 1.30f, cy)
+                cubicTo(
+                    cx - rx * 0.75f, cy - ry,
+                    cx + rx * 0.35f, cy + ry,
+                    cx + rx * 1.30f, cy
+                )
+            }
+            val right = Path().apply {
+                moveTo(cx - rx * 1.30f, cy)
+                cubicTo(
+                    cx - rx * 0.35f, cy + ry,
+                    cx + rx * 0.75f, cy - ry,
+                    cx + rx * 1.30f, cy
+                )
+            }
+
+            pathPaint.color = cyan
+            pathPaint.alpha = (180 + progress * 75).toInt()
+            drawProgress(canvas, left, progress)
+
+            pathPaint.color = pink
+            pathPaint.alpha = (160 + progress * 95).toInt()
+            drawProgress(canvas, right, (progress - 0.12f).coerceAtLeast(0f))
+
+            drawStar(canvas, cx, cy - 88f * scale, (18f + pulse * 3f) * scale)
+
+            textPaint.textSize = 40f * scale
+            textPaint.alpha = (255f * titleAlpha).toInt()
+            canvas.drawText("TESADÜF", cx, height * 0.61f, textPaint)
+
+            subPaint.textSize = 15f * scale
+            subPaint.alpha = (255f * subtitleAlpha).toInt()
+            canvas.drawText("Her sohbet yeni bir hikâye.", cx, height * 0.67f, subPaint)
+
+            val sparkle = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE }
+            val points = arrayOf(
+                floatArrayOf(-0.25f, -0.04f, 3f),
+                floatArrayOf(0.26f, -0.02f, 3f),
+                floatArrayOf(-0.30f, 0.16f, 2f),
+                floatArrayOf(0.31f, 0.17f, 2f)
+            )
+            points.forEachIndexed { i, s ->
+                val alpha = 110 + (100 * (0.5f + 0.5f * kotlin.math.sin(pulse * 6f + i))).toInt()
+                sparkle.alpha = (alpha * progress).toInt()
+                canvas.drawCircle(cx + width * s[0], cy + height * s[1], s[2] * scale, sparkle)
+            }
+        }
+
+        private fun drawProgress(canvas: Canvas, path: Path, fraction: Float) {
+            if (fraction <= 0f) return
+            val pm = android.graphics.PathMeasure(path, false)
+            val segment = Path()
+            pm.getSegment(0f, pm.length * fraction.coerceAtMost(1f), segment, true)
+            canvas.drawPath(segment, pathPaint)
+        }
+
+        private fun drawStar(canvas: Canvas, x: Float, y: Float, r: Float) {
+            val path = Path()
+            for (i in 0 until 8) {
+                val angle = Math.toRadians((-90 + i * 45).toDouble())
+                val rr = if (i % 2 == 0) r else r * 0.34f
+                val px = x + kotlin.math.cos(angle).toFloat() * rr
+                val py = y + kotlin.math.sin(angle).toFloat() * rr
+                if (i == 0) path.moveTo(px, py) else path.lineTo(px, py)
+            }
+            path.close()
+            canvas.drawPath(path, starPaint)
+        }
+
+        fun animateExit(onEnd: () -> Unit) {
+            animate().alpha(0f).setDuration(380).withEndAction(onEnd).start()
+        }
     }
 
     private fun showProfileSetup() {
