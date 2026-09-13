@@ -1,8 +1,5 @@
-import java.util.Base64
-
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.plugin.serialization")
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
@@ -15,52 +12,22 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        versionName = "0.1.0"
-
-        buildConfigField("String", "SUPABASE_URL", "\"https://wihagxhijxccxnaktnel.supabase.co\"")
-        buildConfigField("String", "SUPABASE_KEY", "\"sb_publishable_3ivcpoyZlbB2kTBvLQpPBQ_9LgMw7u5\"")
+        versionName = "0.2.0"
     }
 
     buildFeatures {
         compose = true
-        buildConfig = true
     }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
-    // The master TESADÜF logo is kept as a single source asset and materialized
-    // into the Android resources during every build.
-    sourceSets["main"].res.srcDir(layout.buildDirectory.dir("generated/res/tesadufLogo"))
-}
-
-val materializeTesadufLogo by tasks.registering {
-    val encoded = layout.projectDirectory.file("src/main/tesaduf_logo.webp.b64")
-    val output = layout.buildDirectory.file("generated/res/tesadufLogo/drawable-nodpi/tesaduf_logo.webp")
-
-    inputs.file(encoded)
-    outputs.file(output)
-
-    doLast {
-        val data = encoded.asFile.readText().trim()
-        val bytes = Base64.getDecoder().decode(data)
-        output.get().asFile.apply {
-            parentFile.mkdirs()
-            writeBytes(bytes)
-        }
-    }
-}
-
-tasks.named("preBuild") {
-    dependsOn(materializeTesadufLogo)
 }
 
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2025.02.00")
     implementation(composeBom)
-    androidTestImplementation(composeBom)
 
     implementation("androidx.activity:activity-compose:1.10.1")
     implementation("androidx.compose.ui:ui")
@@ -69,12 +36,6 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
-    implementation("androidx.navigation:navigation-compose:2.8.7")
-    debugImplementation("androidx.compose.ui:ui-tooling")
 
-    implementation(platform("io.github.jan-tennert.supabase:bom:3.1.4"))
-    implementation("io.github.jan-tennert.supabase:auth-kt")
-    implementation("io.github.jan-tennert.supabase:postgrest-kt")
-    implementation("io.ktor:ktor-client-android:3.1.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+    debugImplementation("androidx.compose.ui:ui-tooling")
 }
