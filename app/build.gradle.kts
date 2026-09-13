@@ -1,3 +1,5 @@
+import java.util.Base64
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.serialization")
@@ -30,8 +32,7 @@ android {
     }
 
     // The master TESADÜF logo is kept as a single source asset and materialized
-    // into the Android resources during every build. This prevents the launcher
-    // icon from silently falling back to an older vector logo.
+    // into the Android resources during every build.
     sourceSets["main"].res.srcDir(layout.buildDirectory.dir("generated/res/tesadufLogo"))
 }
 
@@ -44,7 +45,7 @@ val materializeTesadufLogo by tasks.registering {
 
     doLast {
         val data = encoded.asFile.readText().trim()
-        val bytes = java.util.Base64.getDecoder().decode(data)
+        val bytes = Base64.getDecoder().decode(data)
         output.get().asFile.apply {
             parentFile.mkdirs()
             writeBytes(bytes)
