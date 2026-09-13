@@ -204,8 +204,8 @@ fun Chat(s:TesadufState,vm:TesadufViewModel){
             onDismissRequest={},
             title={Text("Bu tesadüf hoşuna gitti mi? ✨")},
             text={Text("İkiniz de devam etmeyi seçerseniz tesadüfünüz kadere dönüşür.")},
-            confirmButton={Button(onClick={ { vm.decide(true) } }){Text("💚 Tesadüfü Sürdür")}},
-            dismissButton={TextButton(onClick={ { vm.decide(false) } }){Text("Burada Bitsin")}}
+            confirmButton={Button(onClick={ vm.decide(true) }){Text("💚 Tesadüfü Sürdür")}},
+            dismissButton={TextButton(onClick={ vm.decide(false) }){Text("Burada Bitsin")}}
         )
     }
 
