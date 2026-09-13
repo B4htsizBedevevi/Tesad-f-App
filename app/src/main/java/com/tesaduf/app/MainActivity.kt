@@ -7,7 +7,6 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Gravity
-import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -77,7 +76,7 @@ class MainActivity : Activity() {
         }
         var selected = prefs.getString("avatar", avatars[0]) ?: avatars[0]
         val avatarViews = mutableListOf<TextView>()
-        avatars.forEachIndexed { index, avatar ->
+        avatars.forEach { avatar ->
             val v = avatarButton(avatar, avatar == selected)
             v.setOnClickListener {
                 selected = avatar
@@ -110,11 +109,11 @@ class MainActivity : Activity() {
         }
 
         val top = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        val avatar = label(prefs.getString("avatar", "🌙"), 28f, white)
+        val avatar = label(prefs.getString("avatar", "🌙") ?: "🌙", 28f, white)
         top.addView(avatar, lp(dp(48), dp(48), 0, 0))
         val identity = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         identity.addView(label("TESADÜF", 20f, white, Typeface.BOLD))
-        identity.addView(label(prefs.getString("anonymous_id", "#?????")!!, 13f, muted, Typeface.NORMAL), lp(-1, -2, 1, 2))
+        identity.addView(label(prefs.getString("anonymous_id", "#?????") ?: "#?????", 13f, muted, Typeface.NORMAL), lp(-1, -2, 1, 2))
         top.addView(identity, lp(0, -2, 1, 12))
         content.addView(top)
 
