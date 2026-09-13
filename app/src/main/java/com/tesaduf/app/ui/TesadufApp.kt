@@ -24,7 +24,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.tesaduf.app.R
+import com.tesaduf.app.data.ensureAnonymousSession
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private val slogans = listOf(
     "Bazen en iyi sohbetler planlanmaz.",
@@ -95,7 +97,19 @@ private fun TesadufSplash(onFinished: () -> Unit) {
 @Composable
 private fun TesadufHome() {
     var mood by remember { mutableStateOf("🎲 Fark etmez") }
+    var anonymousId by remember { mutableStateOf<String?>(null) }
+    var authError by remember { mutableStateOf<String?>(null) }
     val moods = listOf("😄 Eğlenceli", "🧠 Derin", "🌙 Gece", "🎵 Müzik", "🎮 Oyun", "🎲 Fark etmez")
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        ensureAnonymousSession().onSuccess {
+            anonymousId = it
+            authError = null
+        }.onFailure {
+            authError = it.message ?: "Anonim bağlantı kurulamadı"
+        }
+    }
 
     Column(
         Modifier.fillMaxSize().background(Color(0xFF070914)).padding(20.dp),
@@ -112,8 +126,23 @@ private fun TesadufHome() {
         Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(22.dp)) {
             Column(Modifier.padding(18.dp)) {
                 Text("Anonim kimliğin", style = MaterialTheme.typography.labelLarge)
-                Text("Hazırlanıyor…", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("Gerçek kimliğin görünmez.", style = MaterialTheme.typography.bodyMedium)
+                when {
+                    anonymousId != null -> {
+                        Text("Bağlantı hazır", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Text("Kimlik: ${anonymousId!!.take(8)}…", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    authError != null -> {
+                        Text("Bağlantı bekleniyor", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Text(authError!!, style = MaterialTheme.typography.bodyMedium)
+                        TextButton(onClick = {
+                            scope.launch {
+                                ensureAnonymousSession().onSuccess { anonymousId = it; authError = null }
+                                    .onFailure { authError = it.message ?: "Anonim bağlantı kurulamadı" }
+                            }
+                        }) { Text("Tekrar dene") }
+                    }
+                    else -> Text("Hazırlanıyor…", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                }
             }
         }
         Text("Bugün nasıl bir sohbet?", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -126,6 +155,7 @@ private fun TesadufHome() {
         }
         Button(
             onClick = { },
+            enabled = anonymousId != null,
             modifier = Modifier.fillMaxWidth().height(58.dp),
             shape = RoundedCornerShape(18.dp)
         ) { Text("🎲 TESADÜFÜ BAŞLAT", fontWeight = FontWeight.Bold) }
