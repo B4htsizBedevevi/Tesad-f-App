@@ -12,12 +12,16 @@ android {
         applicationId = "com.tesaduf.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
+        versionCode = 3
         versionName = "0.3.0"
+
+        buildConfigField("String", "SUPABASE_URL", "\"https://wihagxhijxccxnaktnel.supabase.co\"")
+        buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"${providers.gradleProperty(\"supabasePublishableKey\").orElse(\"\").get()}\"")
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     compileOptions {
